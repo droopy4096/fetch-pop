@@ -63,6 +63,8 @@ if __name__ == '__main__':
                         help='User name (email)')
     parser.add_argument('--password', default=config.password, help='password')
     parser.add_argument('--server', default=config.server, help='POP3 server')
+    parser.add_argument('--subdirs', action='store_true', default=False,
+                        help='create sub-directories based on messages UIDs') 
     parser.add_argument('--no-delete', action='store_true', default=False, 
                         help='do not delete message on server')
     parser.add_argument('--directory',
@@ -81,9 +83,19 @@ if __name__ == '__main__':
     mbox = POPBox(host=config.server, user=config.user, 
                   password=config.password)
     counter = 1
+    if not os.path.exists(config.directory):
+        os.makedirs(config.directory)
     for (msgid, msguid, message) in mbox.pop_message(not args.no_delete):
         print("Processing {0}/{1}: {2}".format(msgid, msguid, 
               message.get('Subject', '-No subject-')))
+        if args.subdirs:
+            counter = 1
+            my_dir = os.path.join(config.directory, msguid)
+            if not os.path.exists(my_dir):
+                os.makedirs(my_dir)
+
+        else:
+            my_dir = config.directory
         for part in message.walk():
 
             if part.get_content_maintype() == 'multipart':
@@ -96,9 +108,9 @@ if __name__ == '__main__':
                 if not ext:
                     # Use a generic bag-of-bits extension
                     ext = '.bin'
-                filename = 'part-%03d%s' % (counter, ext)
+                filename = 'part-%05d%s' % (counter, ext)
             counter += 1
-            fp = open(os.path.join(config.directory, filename), 'wb')
+            fp = open(os.path.join(my_dir, filename), 'wb')
             fp.write(part.get_payload(decode=True))
             fp.close()
 
