@@ -1,0 +1,7 @@
+[auth]
+user = user@some.com
+password = secretpassword
+server = pop3.some.com
+
+[locations]
+directory = files
