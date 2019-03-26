@@ -99,6 +99,8 @@ if __name__ == '__main__':
         elif args.subject:
             counter = 1
             my_dir = os.path.join(config.directory, subject)
+            if not os.path.exists(my_dir):
+                os.makedirs(my_dir)
         else:
             my_dir = config.directory
         for part in message.walk():
