@@ -50,7 +50,7 @@ class AppConfig(UserDict):
 if __name__ == '__main__':
     config = AppConfig()
     config_file = ConfigParser()
-    opened_configs = config_file.read(['.fetchrc', 
+    opened_configs = config_file.read(['.fetchrc',
                                        os.path.expanduser('~/.fetchrc')])
     if opened_configs:
         for i in ('user', 'password', 'server'):
@@ -58,14 +58,17 @@ if __name__ == '__main__':
         config['directory'] = config_file.get('locations', 'directory',
                                               raw=False)
     parser = argparse.ArgumentParser(
-            description="Fetch contents of mailbox and unpack it's contents")
-    parser.add_argument('--user', default=config.user, 
+        description="Fetch contents of mailbox and unpack it's contents")
+    parser.add_argument('--user', default=config.user,
                         help='User name (email)')
     parser.add_argument('--password', default=config.password, help='password')
     parser.add_argument('--server', default=config.server, help='POP3 server')
-    parser.add_argument('--subdirs', action='store_true', default=False,
-                        help='create sub-directories based on messages UIDs') 
-    parser.add_argument('--no-delete', action='store_true', default=False, 
+    subdirs_group = parser.add_mutually_exclusive_group()
+    subdirs_group.add_argument('--subdirs', action='store_true', default=False,
+                               help='create sub-directories based on messages UIDs')
+    subdirs_group.add_argument('--subject', action='store_true', default=False,
+                               help='create sub-directories based on messages Subject')
+    parser.add_argument('--no-delete', action='store_true', default=False,
                         help='do not delete message on server')
     parser.add_argument('--directory',
                         default=config.directory,
@@ -80,20 +83,22 @@ if __name__ == '__main__':
     config.server = os.environ.get('POP3_SERVER', config.server)
     config.directory = os.environ.get('POP3_DIRECTORY', config.directory)
 
-    mbox = POPBox(host=config.server, user=config.user, 
+    mbox = POPBox(host=config.server, user=config.user,
                   password=config.password)
     counter = 1
     if not os.path.exists(config.directory):
         os.makedirs(config.directory)
     for (msgid, msguid, message) in mbox.pop_message(not args.no_delete):
-        print("Processing {0}/{1}: {2}".format(msgid, msguid, 
-              message.get('Subject', '-No subject-')))
+        subject = message.get('Subject', '-No subject-')
+        print("Processing {0}/{1}: {2}".format(msgid, msguid, subject))
         if args.subdirs:
             counter = 1
             my_dir = os.path.join(config.directory, msguid)
             if not os.path.exists(my_dir):
                 os.makedirs(my_dir)
-
+        elif args.subject:
+            counter = 1
+            my_dir = os.path.join(config.directory, subject)
         else:
             my_dir = config.directory
         for part in message.walk():
@@ -115,4 +120,3 @@ if __name__ == '__main__':
             fp.close()
 
     mbox.close()
-
